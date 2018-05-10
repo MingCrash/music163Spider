@@ -6,7 +6,36 @@
 # https://doc.scrapy.org/en/latest/topics/spider-middleware.html
 
 from scrapy import signals
+from scrapy.conf import settings
+from fake_useragent import UserAgent
+from scrapy.contrib.downloadermiddleware.httpproxy import HttpProxyMiddleware
+from scrapy.contrib.downloadermiddleware.useragent import UserAgentMiddleware
+import random
 
+
+class ProxyMiddleware(HttpProxyMiddleware):
+    def process_request(self,request,spider):
+        proxy_list=settings['PROXY_LIST']
+        #"http://YOUR_PROXY_IP:PORT"
+        request.meta['proxy'] ='http://{proxy}'.format(proxy=random.choice(proxy_list))
+        return None
+
+    #服务器拒绝以后，换一个新的IP
+    def process_response(self, request, response, spider):
+        #200 请求已成功，请求所希望的响应头或数据体将随此响应返回。出现此状态码是表示正常状态。
+        if response.status != 200:
+            proxy_list = settings['PROXY_LIST']
+            while True:
+                #换一个新的ip
+                if random.choice(proxy_list) != response.meta['proxy']:
+                    #修改当前的request请求
+                    request.meta['proxy'] = 'http://{proxy}'.format(proxy=random.choice(proxy_list))
+                    break
+
+class RandomUAMiddleware(UserAgentMiddleware):
+    def process_request(self,request,spider):
+        request.headers['User-Agent'] = UserAgent().random
+        return None
 
 class NemusicpjSpiderMiddleware(object):
     # Not all methods need to be defined. If a method is not defined,
@@ -55,7 +84,6 @@ class NemusicpjSpiderMiddleware(object):
     def spider_opened(self, spider):
         spider.logger.info('Spider opened: %s' % spider.name)
 
-
 class NemusicpjDownloaderMiddleware(object):
     # Not all methods need to be defined. If a method is not defined,
     # scrapy acts as if the downloader middleware does not modify the
@@ -101,3 +129,5 @@ class NemusicpjDownloaderMiddleware(object):
 
     def spider_opened(self, spider):
         spider.logger.info('Spider opened: %s' % spider.name)
+
+
