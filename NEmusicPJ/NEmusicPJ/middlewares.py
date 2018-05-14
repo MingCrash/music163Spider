@@ -10,10 +10,27 @@ from scrapy.conf import settings
 from fake_useragent import UserAgent
 from scrapy.contrib.downloadermiddleware.httpproxy import HttpProxyMiddleware
 from scrapy.contrib.downloadermiddleware.useragent import UserAgentMiddleware
+import redis
 import random
 
 
 class ProxyMiddleware(HttpProxyMiddleware):
+
+    @classmethod
+    def from_crawler(cls, crawler):
+        # This method is used by Scrapy to create your spiders.
+        s = cls()
+        crawler.signals.connect(s.spider_opened, signal=signals.spider_opened)
+        return s
+
+    def __init__(self):
+        HttpProxyMiddleware.__init__()
+        self.pool = redis.ConnectionPool(max_connections=10,host=settings['REDIS_HOST'],port=settings['REDIS_PORT'])
+        self.redscli = redis.Redis(connection_pool=self.pool)
+
+    def __del__(self):
+        self.pool.disconnect()
+
     def process_request(self,request,spider):
         proxy_list=settings['PROXY_LIST']
         #"http://YOUR_PROXY_IP:PORT"
@@ -24,17 +41,26 @@ class ProxyMiddleware(HttpProxyMiddleware):
     def process_response(self, request, response, spider):
         #200 请求已成功，请求所希望的响应头或数据体将随此响应返回。出现此状态码是表示正常状态。
         if response.status != 200:
-            proxy_list = settings['PROXY_LIST']
-            while True:
-                #换一个新的ip
-                if random.choice(proxy_list) != response.meta['proxy']:
-                    #修改当前的request请求
-                    request.meta['proxy'] = 'http://{proxy}'.format(proxy=random.choice(proxy_list))
-                    break
+            # proxy_list = settings['PROXY_LIST']
+            # while True:
+            #     #换一个新的ip
+            #     if random.choice(proxy_list) != response.meta['proxy']:
+            #         #修改当前的request请求
+            #         request.meta['proxy'] = 'http://{proxy}'.format(proxy=random.choice(proxy_list))
+            #         break
+            try:
+                request.meta['proxy']= self.redscli.rpop()
+            except:
+                pass
+
 
 class RandomUAMiddleware(UserAgentMiddleware):
+    def __init__(self):
+        self.ua=UserAgent()
+
     def process_request(self,request,spider):
-        request.headers['User-Agent'] = UserAgent().random
+        UserAgent=self.ua.random
+        request.headers['User-Agent'] = UserAgent
         return None
 
 class NemusicpjSpiderMiddleware(object):

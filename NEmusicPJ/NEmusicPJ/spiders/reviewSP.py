@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 import re
 from scrapy import Request
-from NEmusicPJ.items import CommentItem
 from scrapy.conf import settings
 from scrapy_redis.spiders import RedisSpider
+
+
 
 #好帖子：https://blog.csdn.net/qq_28304687/article/details/78678831
 class ReviewspSpider(RedisSpider):
@@ -106,9 +107,9 @@ class ReviewspSpider(RedisSpider):
         #     item['song']=song
         #     item['singer']=singer
         #     item['album']=album
-        #     item['nickname']=each.xpath('/div[2]/div[1]/div/a/text()').extract()[0]
-        #     item['comment_content']=each.xpath('/div[1]/div/text()').extract()[0]
-        #     item['likedCount']=each.xpath('/div[@class="rp"]/a[@data-type="like"]/text()').extrct()[0]
-        #     item['time']=each.xpath('/div[@class="rp"]/div[@class="time s-fc4"]/text()').extrct()[0]
+        #     item['nickname']=each.xpath('./div[2]/div[1]/div/a/text()').extract()[0]
+        #     item['comment_content']=each.xpath('./div[1]/div/text()').extract()[0]
+        #     item['likedCount']=each.xpath('./div[@class="rp"]/a[@data-type="like"]/text()').extrct()[0]
+        #     item['time']=each.xpath('./div[@class="rp"]/div[@class="time s-fc4"]/text()').extrct()[0]
         print(item)
         yield item
